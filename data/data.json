@@ -1,0 +1,58 @@
+
+{
+  "volunteers": {
+    "V1": {
+      "name": "Alex",
+      "availability": {
+        "Monday": [[8, 12]],
+        "Tuesday": [[9, 12]]
+      }
+    },
+    "V2": {
+      "name": "Jordan",
+      "availability": {
+        "Monday": [[10, 14]]
+      }
+    },
+    "V3": {
+      "name": "Taylor",
+      "availability": {
+        "Monday": [[11, 15]],
+        "Tuesday": [[10, 14]]
+      }
+    },
+    "V4": {
+      "name": "Morgan",
+      "availability": {
+        "Monday": [[8, 14]],
+        "Tuesday": [[9, 13]]
+      }
+    },
+    "V5": {
+      "name": "Casey",
+      "availability": {
+        "Tuesday": [[12, 15]]
+      }
+    }
+  },
+  "shifts": {
+    "S1": {
+      "name": "Food Pantry",
+      "day": "Monday",
+      "start": 9,
+      "end": 11
+    },
+    "S2": {
+      "name": "Donation Sorting",
+      "day": "Monday",
+      "start": 11,
+      "end": 13
+    },
+    "S3": {
+      "name": "Evening Cleanup",
+      "day": "Tuesday",
+      "start": 16,
+      "end": 18
+    }
+  }
+}
