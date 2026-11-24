@@ -86,12 +86,19 @@ Follow these rules:
 3. Use check_availability to verify their availability.
 4. Use check_conflict to check for scheduling conflicts.
 5. If both checks pass, use propose_assignment.
-6. If a volunteer is unavailable or the assignment fails,
-   try another volunteer.
+6. If a volunteer is unavailable or the assignment fails, try another volunteer.
 7. If nobody can cover a shift, report it as unfilled.
 8. Continue until all three shifts have been considered.
 9. Use get_assignments to review accepted assignments.
 10. Only then provide a final summary.
+11. Before proposing an assignment, call both check_availability and check_conflict to ensure the volunteer is suitable.
+
+Before finishing:
+- Review all assignments using get_assignments.
+- Make sure each shift with a suitable volunteer has an accepted assignment.
+- If a suitable volunteer was found but not assigned, call propose_assignment.
+- Only report volunteers as assigned if propose_assignment returned "Assignment successful".
+- Do not stop after only checking availability.
 
 You must make the decisions about which volunteers to try.
 Do not assume a volunteer is available without checking.
@@ -185,27 +192,70 @@ Do not claim an assignment succeeded unless the tool confirms it.
     #display assignments and independently check the availability
     print("\n=== VERIFIED ASSIGNMENTS ===")
 
+    filled = 0
+    unfilled = 0
+    invalid = 0
+
+    #this is just to format the output in a more readable way
     for shift_id, shift in scheduler.shifts.items():
         volunteer_id = scheduler.assignments.get(shift_id)
 
+        print(f"\nSHIFT {shift_id}: {shift['name']}")
+        print(f"Day:       {shift['day']}")
+        print(
+            f"Time:      {scheduler.format_schedule(shift['start'])} - "
+            f"{scheduler.format_schedule(shift['end'])}"
+        )
+
         if volunteer_id is None:
-            print(f"{shift_id}: UNFILLED")
+            print("Volunteer: UNASSIGNED")
+            print("Status:    UNFILLED")
+            unfilled += 1
+            print("-" * 45)
             continue
 
-        volunteer = scheduler.volunteers[volunteer_id]
-
-        availability = scheduler.check_availability(
-            volunteer_id, shift_id
+        #checking that the volunteer exists and is available
+        valid = (
+            volunteer_id in scheduler.volunteers
+            and scheduler.check_availability(
+                volunteer_id, shift_id
+            ) == "Available"
         )
 
-        status = (
-            "VERIFIED" if availability == "Available"
-            else "INVALID"
-        )
+        #checking that the volunteer has no overlapping assignments
+        for other_id, other_volunteer in scheduler.assignments.items():
+            if other_id == shift_id or other_volunteer != volunteer_id:
+                continue
 
-        print(
-            f"{shift_id}: {volunteer['name']} - {status}"
-        )
+            other_shift = scheduler.shifts.get(other_id)
+
+            if other_shift is None or (
+                shift["day"] == other_shift["day"]
+                and shift["start"] < other_shift["end"]
+                and other_shift["start"] < shift["end"]
+            ):
+                valid = False
+
+        volunteer_name = scheduler.volunteers.get(
+            volunteer_id, {}
+        ).get("name", volunteer_id)
+
+        print(f"Volunteer: {volunteer_name}")
+        print(f"Status:    {'VERIFIED' if valid else 'INVALID'}")
+
+        if valid:
+            filled += 1
+        else:
+            invalid += 1
+
+        print("-" * 45)
+
+    print("\n========== SUMMARY ==========")
+    print(f"Total Shifts:     {len(scheduler.shifts)}")
+    print(f"Verified Shifts:  {filled}")
+    print(f"Unfilled Shifts:  {unfilled}")
+    print(f"Invalid Shifts:   {invalid}")
+    print("=============================")
 
 
 if __name__ == "__main__":

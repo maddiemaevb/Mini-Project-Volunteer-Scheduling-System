@@ -5,7 +5,7 @@ from pathlib import Path
 DATA_FILE = Path(__file__).parent / "data" / "data.json"
 
 #opening the file from the data folder and loading the data into a dictionary
-with open(DATA_FILE, "r") as f:
+with open(DATA_FILE, "r", encoding="utf-8") as f:
     data = json.load(f)
 
 #extracting volunteers and shifts from the loaded data
@@ -27,12 +27,11 @@ def check_availability(volunteer_id, shift_id):
     if volunteer_id not in volunteers or shift_id not in shifts:
         return "Invalid volunteer or shift."
 
-    volunteer = volunteers[volunteer_id]
+    
     shift = shifts[shift_id]
+    times = volunteers[volunteer_id]["availability"].get(shift["day"], [])
 
-    available_times = volunteer["availability"].get(shift["day"], [])
-
-    for start, end in available_times:
+    for start, end in times:
         if start <= shift["start"] and end >= shift["end"]:
             return "Available"
 
@@ -46,12 +45,13 @@ def check_conflict(volunteer_id, shift_id):
     if shift_id in assignments:
         return "Shift already assigned."
 
+    new_shift = shifts[shift_id]
+
     for assigned_shift_id, assigned_volunteer_id in assignments.items():
         if assigned_volunteer_id != volunteer_id:
             continue
 
         assigned_shift = shifts[assigned_shift_id]
-        new_shift = shifts[shift_id]
 
         if assigned_shift["day"] != new_shift["day"]:
             continue
@@ -77,3 +77,9 @@ def propose_assignment(volunteer_id, shift_id):
 #getting the current assignments of volunteers to shifts
 def get_assignments():
     return assignments
+
+#helper function to format the schedule time in a more readable format
+def format_schedule(hour):
+    period = "AM" if hour < 12 else "PM"
+    display_hour = hour % 12 or 12
+    return f"{display_hour}:00 {period}"
