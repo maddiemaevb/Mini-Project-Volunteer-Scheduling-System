@@ -55,7 +55,7 @@ for name in functions:
                 "list_volunteers": "List volunteers and their available times.",
                 "list_shifts": "List shifts that need volunteers.",
                 "check_availability": "Check if a volunteer is available for a shift.",
-                "check_conflict": "Check for scheduling conflicts.",
+                "check_conflict": "Check if a shift is filled or conflicts with another assignment.",
                 "propose_assignment": "Attempt to assign a volunteer to a shift.",
                 "get_assignments": "Show currently accepted assignments."
             }[name],
@@ -63,6 +63,27 @@ for name in functions:
         }
     })
 
+def find_unfinished_shifts():
+    unfinished = []
+
+    for shift_id in scheduler.shifts:
+        if shift_id in scheduler.assignments:
+            continue
+
+        for volunteer_id in scheduler.volunteers:
+            availability = scheduler.check_availability(
+                volunteer_id, shift_id
+            )
+
+            conflict = scheduler.check_conflict(
+                volunteer_id, shift_id
+            )
+
+            if availability == "Available" and conflict == "No conflict":
+                unfinished.append(shift_id)
+                break
+
+    return unfinished
 
 def run_agent():
     #clear assignments before starting
@@ -113,6 +134,8 @@ Do not claim an assignment succeeded unless the tool confirms it.
 
     print("\n=== VOLUNTEER PLANNING AGENT ===")
 
+    empty_responses = 0
+
     #allow the model to make multiple decisions
     for step in range(30):
 
@@ -130,7 +153,13 @@ Do not claim an assignment succeeded unless the tool confirms it.
 
             #if Qwen returns nothing, ask it to continue
             if not message.content or not message.content.strip():
+                empty_responses += 1
+
                 print("\nModel returned an empty response. Retrying...")
+
+                if empty_responses >= 3:
+                    print("Too many empty responses. Stopping the agent.")
+                    break
 
                 messages.append({
                     "role": "user",
@@ -144,10 +173,33 @@ Do not claim an assignment succeeded unless the tool confirms it.
 
                 continue
 
+            empty_responses = 0
+            unfinished = find_unfinished_shifts()
+
+            if unfinished:
+                print(f"\nUnfinished shifts detected: {unfinished}")
+
+                messages.append({
+                    "role": "assistant",
+                    "content": message.content
+                })
+
+                messages.append({
+                    "role": "user",
+                    "content": (
+                        f"These shifts can still be filled: {unfinished}. "
+                        "Choose a suitable volunteer and call "
+                        "propose_assignment before finishing."
+                    )
+                })
+
+                continue
+
             print("\n=== AGENT FINAL RESPONSE ===")
             print(message.content)
             break
 
+        empty_responses = 0
         #save the model's tool requests
         messages.append({
             "role": "assistant",
